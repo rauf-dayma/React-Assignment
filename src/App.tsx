@@ -1,5 +1,5 @@
 import React from 'react';
-import Table from './Componets/table'; './Componets/Table';
+import Table from './Componets/Table'; 
 
 const App: React.FC = () => {
   return (

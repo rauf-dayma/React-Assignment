@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { DataTable } from "primereact/datatable";
+import { DataTable, DataTableStateEvent } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { OverlayPanel } from "primereact/overlaypanel";
-import { Checkbox } from "primereact/checkbox";
-import { PaginatorPageChangeEvent } from "primereact/paginator";
+// import { Checkbox } from "primereact/checkbox";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-// import "./table.css"
 
-// Defining structure of Artwork to maintain type safety
 interface Artwork {
   id: number;
   title: string;
@@ -26,15 +23,16 @@ interface ApiResponse {
 }
 
 const ArtworkTable: React.FC = () => {
-  const [data, setData] = useState<Artwork[]>([]); 
-  const [isLoading, setIsLoading] = useState(false); 
-  const [activePage, setActivePage] = useState(1); 
-  const [totalPageCount, setTotalPageCount] = useState(0); 
-  const [selectedRows, setSelectedRows] = useState<{ [id: number]: boolean }>({});
-  const [showOverlay, setShowOverlay] = useState(false);
-  const [inputNum, setInputNum] = useState(""); 
+  const [data, setData] = useState<Artwork[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [activePage, setActivePage] = useState(1);
+  const [totalPageCount, setTotalPageCount] = useState(0);
+  const [selectedRows, setSelectedRows] = useState<{ [id: number]: boolean }>(
+    {}
+  );
+  const [inputNum, setInputNum] = useState("");
 
-  const rowsPerPage = 10; 
+  const rowsPerPage = 10;
   const overlayRef = useRef<OverlayPanel>(null);
 
   useEffect(() => {
@@ -48,38 +46,38 @@ const ArtworkTable: React.FC = () => {
         `https://api.artic.edu/api/v1/artworks?page=${page}`
       );
       const apiData: ApiResponse = await response.json();
-      setData(apiData.data); 
-      setTotalPageCount(apiData.pagination.total_pages); 
+      setData(apiData.data);
+      setTotalPageCount(apiData.pagination.total_pages);
     } catch (err) {
       console.error("Error while fetching artwork data:", err);
     } finally {
-      setIsLoading(false); // Stop showing loader
+      setIsLoading(false);
     }
   };
 
-  const handlePageChange = (event: PaginatorPageChangeEvent) => {
-    setActivePage(event.page + 1);
+  const handlePageChange = (event: DataTableStateEvent) => {
+    if (event.page !== undefined) {
+      setActivePage(event.page + 1); // PrimeReact's paginator is 0-indexed
+    }
   };
 
   const isRowSelected = (row: Artwork) => Boolean(selectedRows[row.id]);
 
-  // Renders checkbox column for each row
-  const renderCheckbox = (row: Artwork) => (
-    <Checkbox
-      checked={isRowSelected(row)}
-      onChange={(e) => {
-        const updatedSelections = { ...selectedRows };
-        if (e.checked) {
-          updatedSelections[row.id] = true;
-        } else {
-          delete updatedSelections[row.id];
-        }
-        setSelectedRows(updatedSelections);
-      }}
-    />
-  );
+//   const renderCheckbox = (row: Artwork) => (
+//     <Checkbox
+//       checked={isRowSelected(row)}
+//       onChange={(e) => {
+//         const updatedSelections = { ...selectedRows };
+//         if (e.checked) {
+//           updatedSelections[row.id] = true;
+//         } else {
+//           delete updatedSelections[row.id];
+//         }
+//         setSelectedRows(updatedSelections);
+//       }}
+//     />
+//   );
 
-  // Handles overlay form submission to select rows
   const handleOverlaySubmit = () => {
     const count = parseInt(inputNum, 10);
     if (isNaN(count) || count <= 0) {
@@ -94,7 +92,6 @@ const ArtworkTable: React.FC = () => {
     }
     setSelectedRows(newSelection);
     overlayRef.current?.hide();
-    setShowOverlay(false);
   };
 
   const handleSelectionChange = (e: any) => {
@@ -116,35 +113,30 @@ const ArtworkTable: React.FC = () => {
         loading={isLoading}
         totalRecords={totalPageCount * rowsPerPage}
         onPage={handlePageChange}
+        selectionMode="checkbox" // Add this property
         selection={data.filter(isRowSelected)}
         onSelectionChange={handleSelectionChange}
       >
-        <Column selectionMode="multiple" body={renderCheckbox} />
+        <Column selectionMode="multiple" />{" "}
+        {/* Ensure selectionMode is set here */}
         <Column field="id" header="ID" />
         <Column
           field="title"
           header={
             <span
-              onClick={(e) => {
-                overlayRef.current?.toggle(e);
-                setShowOverlay(true);
-              }}
+              onClick={(e) => overlayRef.current?.toggle(e)}
+              style={{ cursor: "pointer" }}
             >
-              Title <ExpandMoreIcon sx={{ marginLeft: "8px", cursor: "pointer" }} />
+              Title <ExpandMoreIcon sx={{ marginLeft: "8px" }} />
             </span>
           }
         />
-        <Column field="artist" header="Artist" />
+        <Column field="artist_title" header="Artist" />
         <Column field="date_start" header="Start Date" />
         <Column field="date_end" header="End Date" />
       </DataTable>
 
-      <OverlayPanel
-        ref={overlayRef}
-        visible={showOverlay}
-        onHide={() => setShowOverlay(false)}
-        style={{ width: "300px" }}
-      >
+      <OverlayPanel ref={overlayRef} style={{ width: "300px" }}>
         <div>
           <label htmlFor="numRowsToSelect">Number of Rows to Select:</label>
           <input
